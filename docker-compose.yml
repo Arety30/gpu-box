@@ -47,7 +47,8 @@ services:
               count: all
               capabilities: [gpu]
     command: >
-      bash -c "curl -fsSL $${GPU_BOX_RAW}/bootstrap.sh -o /usr/local/bin/bootstrap.sh
+      bash -c "command -v curl >/dev/null || (apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null);
+      curl -fsSL $${GPU_BOX_RAW}/bootstrap.sh -o /usr/local/bin/bootstrap.sh
       && bash /usr/local/bin/bootstrap.sh"
 
 volumes:
