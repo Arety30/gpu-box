@@ -1,0 +1,55 @@
+# gpu-box — a throwaway GPU terminal box for NVIDIA Brev "Docker Compose" mode.
+#   Ubuntu 24.04 + CUDA 12.8/cuDNN, all host GPUs, Tailscale SSH for remote access,
+#   /workspace/data mirrored to a private GitHub repo every 2 minutes.
+#
+# Brev → Software Configuration → Docker Compose → "Provide GitHub URL":
+#   https://github.com/Arety30/gpu-box/blob/main/docker-compose.yml
+#
+# Secrets (never commit them). Either:
+#   a) Launchable parameters / org secrets named TS_AUTHKEY and GH_TOKEN, or
+#   b) push ~/.config/gpu-box/secrets.env from the laptop with `gpu-box push`
+#      once the node shows up on the tailnet (the box prints a login URL if
+#      TS_AUTHKEY is empty — read it with `docker logs gpu-box`).
+services:
+  gpu-box:
+    image: nvidia/cuda:12.8.1-cudnn-devel-ubuntu24.04
+    container_name: gpu-box
+    hostname: gpu-box
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    network_mode: host          # tailscale gets direct UDP, no port maps needed
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    shm_size: "16g"
+    stop_grace_period: 120s     # time for the final git sync on stop
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_HOSTNAME: ${TS_HOSTNAME:-gpu-box}
+      GH_TOKEN: ${GH_TOKEN:-}
+      GH_DATA_REPO: ${GH_DATA_REPO:-Arety30/gpu-box-data}
+      GPU_BOX_RAW: ${GPU_BOX_RAW:-https://raw.githubusercontent.com/Arety30/gpu-box/main}
+      SYNC_INTERVAL: ${SYNC_INTERVAL:-120}
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      DEBIAN_FRONTEND: noninteractive
+    volumes:
+      - workspace:/workspace
+      - tailscale-state:/var/lib/tailscale
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >
+      bash -c "curl -fsSL $${GPU_BOX_RAW}/bootstrap.sh -o /usr/local/bin/bootstrap.sh
+      && bash /usr/local/bin/bootstrap.sh"
+
+volumes:
+  workspace:
+  tailscale-state:
