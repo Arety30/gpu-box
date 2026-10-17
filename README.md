@@ -1,38 +1,45 @@
-# gpu-box
+# gpu-box 🚀
+### A disposable GPU development machine you can reach from your own devices.
 
-Throwaway GPU terminal box for **NVIDIA Brev → Docker Compose mode**.
-Ubuntu 24.04 + CUDA 12.8/cuDNN, every host GPU passed through, **Tailscale SSH** inside
-the container, and `/workspace/data` mirrored to a private GitHub repo every 2 minutes
-(files > 90 MB go to the repo's `outputs` release).
+Spin up a GPU-backed Linux workspace for experiments without having to configure every machine by hand. This project packages a container-based environment for NVIDIA Brev, CUDA-enabled workloads, and private remote access over Tailscale.
 
-## Deploy (Brev)
-1. Software Configuration → **Docker Compose** → *Provide GitHub URL*:
-   `https://github.com/Arety30/gpu-box/blob/main/docker-compose.yml`
-2. Turn **Install Jupyter on the host** off (not needed) — or leave it on as a fallback terminal.
-3. Deploy. First boot ≈ 1 min for packages + tailscale, ≈ 3 more min (background) for the python venv.
+## ✨ What's inside
 
-## Connect
-* **Tailscale SSH** (primary): the box joins the tailnet as `gpu-box`.
-  * With a `TS_AUTHKEY` it joins by itself.
-  * Without one it prints a one-time login URL: `docker logs gpu-box | grep login.tailscale.com`
-    (via `brev shell <instance>` or the Brev/Jupyter terminal). Open it once.
-  * Then from the laptop: `gpu-box push` (sends secrets) → `gpu-box ssh`.
-* **Brev's own way**: `brev shell <instance>` then `docker exec -it gpu-box bash`.
+- Ubuntu-based container with NVIDIA GPU access
+- CUDA/cuDNN environment for GPU workloads
+- Tailscale SSH for private remote terminal access
+- Workspace data sync to a separate **private** repository
+- Helpers for common model fine-tuning workflows
 
-## Secrets (never committed)
-| var | purpose |
-|---|---|
-| `TS_AUTHKEY` | optional Tailscale auth key (ephemeral, pre-authorized, tag `gpu-box`) |
-| `GH_TOKEN` | GitHub token with write access to the data repo |
-| `GH_DATA_REPO` | default `Arety30/gpu-box-data` |
+## 🧰 Deploy
 
-Provide them as **Launchable parameters / org secrets** (fully automatic), or drop a
-`secrets.env` into `/workspace` (the laptop helper does this over Tailscale SSH).
+Follow the steps in the repository's `docker-compose.yml` and the NVIDIA Brev setup flow:
 
-## Use
-```
-train                      # LoRA on /workspace/data/in/train.jsonl → /workspace/data/out/<run>/
-train unsloth/Llama-3.1-8B-Instruct
-gpu-box-sync once          # push now (also runs every 2 min and on container stop)
+1. Open the repo's `docker-compose.yml` in Brev's Docker Compose configuration.
+2. Configure secret environment variables using the platform's secret manager.
+3. Deploy, then follow the container logs for first-run setup.
+
+Do **not** commit authentication keys or personal credentials. The scripts expect secrets to be supplied at runtime.
+
+## 💻 Example commands
+
+Once deployed and connected to the container, the environment provides shortcuts such as:
+
+```bash
 nvidia-smi
+train
+gpu-box-sync once
 ```
+
+Available commands depend on the deployed image and configuration.
+
+## 🔐 Security notes
+
+Keep tokens and credentials in a secret manager or an untracked local environment file. Never put live keys in code, logs, screenshots, or a public repository. Workspace data is configured to sync to a separate private repository; review that destination before using real or sensitive data.
+
+## ⚠️ Project status
+
+This is a personal infrastructure experiment. Cloud provider availability, GPU access, pricing, and runtime behavior depend on the provider and deployment settings.
+
+---
+Built by Arety for hands-on ML and infrastructure experiments.
